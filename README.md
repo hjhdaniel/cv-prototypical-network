@@ -1,12 +1,12 @@
 # Computer Vision: Few Shot Learning With Prototypical Network
 
-Reference Paper Title: Prototypical Networks for Few-shot Learning
-Reference Paper URL: https://arxiv.org/pdf/1703.05175v2.pdf
-Reference Paper Authors: Jake Snell, Kevin Swersky, Richard S. Zemel
+Reference Paper Title: Prototypical Networks for Few-shot Learning  
+Reference Paper URL: https://arxiv.org/pdf/1703.05175v2.pdf  
+Reference Paper Authors: Jake Snell, Kevin Swersky, Richard S. Zemel  
 
-Edits of prototypical network code taken from: Orobix
-Code URL: https://github.com/orobix/Prototypical-Networks-for-Few-shot-Learning-PyTorch
-Code Author: Daniele E. Ciriello
+Edits of prototypical network code taken from: Orobix  
+Code URL: https://github.com/orobix/Prototypical-Networks-for-Few-shot-Learning-PyTorch  
+Code Author: Daniele E. Ciriello  
 
 ## Required Packages
 

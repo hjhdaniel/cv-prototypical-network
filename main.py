@@ -8,12 +8,12 @@
 import os, torch
 import numpy as np
 
-from .prototype_network import PrototypicalNetwork
-from .dataloader import DataLoader
-from .loss_function import prototypical_loss as loss_func
-from .parser import get_parser
-from .train import train
-from .test import test
+from prototype_network import PrototypicalNetwork
+from dataloader import DataLoader
+from loss_function import prototypical_loss as loss_func
+from arg_parser import get_parser
+from train import train
+from test import test
 
 def main():
 
@@ -21,11 +21,11 @@ def main():
     arg_settings = get_parser().parse_args()
 
     # get directory root for saving models, losses and accuracies
-    if not os.path.exists(options.experiment_root):
+    if not os.path.exists(arg_settings.experiment_root):
         os.makedirs(arg_settings.experiment_root)
         
     # check if GPU is available
-    if torch.cuda.is_available() and not options.cuda:
+    if torch.cuda.is_available() and not arg_settings.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
     # set seed so results can be reproduced

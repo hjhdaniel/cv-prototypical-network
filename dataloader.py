@@ -8,8 +8,8 @@
 import os, torch
 import numpy as np
 
-from .omniglot_dataset import OmniglotDataset
-from .batch_sampler import BatchSampler
+from omniglot_dataset import OmniglotDataset
+from batch_sampler import BatchSampler
 
 class DataLoader(object):
 
@@ -23,7 +23,7 @@ class DataLoader(object):
 
     def set_data_loader(self):
 
-        if arg_settings.data=='omniglot':
+        if self.arg_settings.data=='omniglot':
             dataset = OmniglotDataset(mode=self.mode, root=self.arg_settings.dataset_root)
             num_classes = len(np.unique(dataset.y))
             sampler = self.create_sampler(dataset.y)

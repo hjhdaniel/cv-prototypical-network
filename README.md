@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Computer Vision: Few Shot Learning With Prototypical Network
 
 Reference Paper Title: Prototypical Networks for Few-shot Learning  
@@ -28,6 +27,3 @@ Code Author: Daniele E. Ciriello
 7) parser.py: parser to handle arguments in commandline
 8) main.py: main code to run (edit this to change parameters for training/testing)
 9) omniglot_dataset.py: for loading omniglot dataset
-=======
-# Computer Vision Project
->>>>>>> master

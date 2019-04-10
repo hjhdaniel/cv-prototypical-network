@@ -7,16 +7,141 @@
 
 import os, torch
 import numpy as np
+from tqdm import tqdm
 
 from prototype_network import PrototypicalNetwork
 from dataloader import DataLoader
 from loss_function import prototypical_loss as loss_func
 from arg_parser import get_parser
-from train import train
-from test import test
+from utils import *
+
+
+def generate_prototype(x, y, n_support):
+    classes = torch.unique(y)
+    support_idxs = list(map(lambda c: y.eq(c).nonzero()[:n_support].squeeze(1), classes))
+    prototypes = torch.stack([x[idx_list].mean(0) for idx_list in support_idxs])
+    return prototypes, classes
+
+
+def train(arg_settings, training_dataloader, model, optimizer, 
+          lr_scheduler, loss_function, validation_dataloader=None):
+
+    device = 'cuda:0' if torch.cuda.is_available() and arg_settings.cuda else 'cpu'
+
+    if validation_dataloader is None:
+        best_state = None
+    
+    train_loss = []
+    train_acc = []
+    val_loss = []
+    val_acc = []
+    best_acc = 0
+
+    best_model_path = os.path.join(arg_settings.experiment_root, 'best_model.pth')
+    last_model_path = os.path.join(arg_settings.experiment_root, 'last_model.pth')
+
+    for epoch in range(arg_settings.epochs):
+        print('=== Epoch: {} ==='.format(epoch))
+        
+        # Training
+        tr_iter = iter(training_dataloader)
+        model.train()
+        for batch in tqdm(tr_iter):
+            optimizer.zero_grad()
+            x, y = batch
+            x, y = x.to(device), y.to(device)
+            model_output = model(x) # Embedding
+
+            # Create prototype, separated from loss fuction
+            n_support = arg_settings.num_support_tr
+            prototypes, classes = generate_prototype(model_output, y, n_support)
+            n_classes = len(classes)
+            n_query = y.eq(classes[0].item()).sum().item() - n_support
+            query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
+            query_samples = model_output[query_idxs]
+
+            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
+            loss.backward()
+            optimizer.step()
+            train_loss.append(loss.item())
+            train_acc.append(acc.item())
+
+        avg_loss = np.mean(train_loss[-arg_settings.iterations:])
+        avg_acc = np.mean(train_acc[-arg_settings.iterations:])
+        print('Avg Train Loss: {}, Avg Train Acc: {}'.format(avg_loss, avg_acc))
+        lr_scheduler.step()
+        if validation_dataloader is None:
+            continue
+        
+        # Validation
+        val_iter = iter(validation_dataloader)
+        model.eval()
+        for batch in val_iter:
+            x, y = batch
+            x, y = x.to(device), y.to(device)
+            model_output = model(x) # Embedding
+
+            # Create prototype, separated from loss fuction
+            n_support = arg_settings.num_support_val
+            prototypes, classes = generate_prototype(model_output, y, n_support)
+            n_classes = len(classes)
+            n_query = y.eq(classes[0].item()).sum().item() - n_support
+            query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
+            query_samples = model_output[query_idxs]
+
+            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
+            val_loss.append(loss.item())
+            val_acc.append(acc.item())
+
+        avg_loss = np.mean(val_loss[-arg_settings.iterations:])
+        avg_acc = np.mean(val_acc[-arg_settings.iterations:])
+        postfix = ' (Best)' if avg_acc >= best_acc else ' (Best: {})'.format(
+            best_acc)
+        print('Avg Val Loss: {}, Avg Val Acc: {}{}'.format(
+            avg_loss, avg_acc, postfix))
+        if avg_acc >= best_acc:
+            torch.save(model.state_dict(), best_model_path)
+            best_acc = avg_acc
+            best_state = model.state_dict()
+
+    torch.save(model.state_dict(), last_model_path)
+
+    for name in ['train_loss', 'train_acc', 'val_loss', 'val_acc']:
+        save_list_to_file(os.path.join(arg_settings.experiment_root,
+                                       name + '.txt'), locals()[name])
+
+    return best_state, best_acc, train_loss, train_acc, val_loss, val_acc
+
+
+def test(arg_settings, testing_dataloader, model, loss_function):
+
+    device = 'cuda:0' if torch.cuda.is_available() and arg_settings.cuda else 'cpu'
+    avg_acc = list()
+    for epoch in range(10):
+        test_iter = iter(testing_dataloader)
+        for batch in test_iter:
+            x, y = batch
+            x, y = x.to(device), y.to(device)
+            model_output = model(x) # Embedding
+
+            # Create prototype, separated from loss fuction
+            n_support = arg_settings.num_support_tr
+            prototypes, classes = generate_prototype(model_output, y, n_support)
+            n_classes = len(classes)
+            n_query = y.eq(classes[0].item()).sum().item() - n_support
+            query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
+            query_samples = model_output[query_idxs]
+
+            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
+            avg_acc.append(acc.item())
+
+    avg_acc = np.mean(avg_acc)
+    print('Test Acc: {}'.format(avg_acc))
+
+    return avg_acc
+
 
 def main():
-
     # initialise parser for arguments
     arg_settings = get_parser().parse_args()
 

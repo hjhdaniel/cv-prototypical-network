@@ -16,17 +16,47 @@ from arg_parser import get_parser
 from utils import *
 
 
-def generate_prototype(x, y, n_support):
-    classes = torch.unique(y)
+def generate_prototype(model_output, y, n_support, classes):
+    """
+    Generate prototype for each class
+    Args:
+        model_output: embeddings for all classes in batch
+        y: class labels in batch
+        n_support: length of support set
+        classes: unique classes labels
+    Return:
+        prototypes: tensor of mean embedding of each class, shape(60, 64)
+    """
     support_idxs = list(map(lambda c: y.eq(c).nonzero()[:n_support].squeeze(1), classes))
-    prototypes = torch.stack([x[idx_list].mean(0) for idx_list in support_idxs])
-    return prototypes, classes
+    # print("Support idx: {}".format(support_idxs))
+    prototypes = torch.stack([model_output[idx_list].mean(0) for idx_list in support_idxs])
+    return prototypes
 
 
-def train(arg_settings, training_dataloader, model, optimizer, 
+def initialise_loss_samples(model_output, y, n_support):
+    """
+    Args:
+        model_output: embeddings for all classes in batch
+        y: class labels in batch
+        n_support: length of support set
+    Return:
+        n_classes: number of unique classes
+        n_query: length of query set
+        prototypes: tensor of mean embedding of each class, shape(60, 64)
+        query_samples: embeddings to use for query set
+    """
+    classes = torch.unique(y)
+    n_classes = len(classes)
+    n_query = y.eq(classes[0].item()).sum().item() - n_support
+
+    prototypes = generate_prototype(model_output, y, n_support, classes)
+    query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
+    query_samples = model_output[query_idxs]
+    return n_classes, n_query, prototypes, query_samples
+
+
+def train(device, arg_settings, training_dataloader, model, optimizer, 
           lr_scheduler, loss_function, validation_dataloader=None):
-
-    device = 'cuda:0' if torch.cuda.is_available() and arg_settings.cuda else 'cpu'
 
     if validation_dataloader is None:
         best_state = None
@@ -54,11 +84,7 @@ def train(arg_settings, training_dataloader, model, optimizer,
 
             # Create prototype, separated from loss fuction
             n_support = arg_settings.num_support_tr
-            prototypes, classes = generate_prototype(model_output, y, n_support)
-            n_classes = len(classes)
-            n_query = y.eq(classes[0].item()).sum().item() - n_support
-            query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
-            query_samples = model_output[query_idxs]
+            n_classes, n_query, prototypes, query_samples = initialise_loss_samples(model_output, y, n_support)
 
             loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
             loss.backward()
@@ -83,11 +109,7 @@ def train(arg_settings, training_dataloader, model, optimizer,
 
             # Create prototype, separated from loss fuction
             n_support = arg_settings.num_support_val
-            prototypes, classes = generate_prototype(model_output, y, n_support)
-            n_classes = len(classes)
-            n_query = y.eq(classes[0].item()).sum().item() - n_support
-            query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
-            query_samples = model_output[query_idxs]
+            n_classes, n_query, prototypes, query_samples = initialise_loss_samples(model_output, y, n_support)
 
             loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
             val_loss.append(loss.item())
@@ -113,9 +135,7 @@ def train(arg_settings, training_dataloader, model, optimizer,
     return best_state, best_acc, train_loss, train_acc, val_loss, val_acc
 
 
-def test(arg_settings, testing_dataloader, model, loss_function):
-
-    device = 'cuda:0' if torch.cuda.is_available() and arg_settings.cuda else 'cpu'
+def test(device, arg_settings, testing_dataloader, model, loss_function):
     avg_acc = list()
     for epoch in range(10):
         test_iter = iter(testing_dataloader)
@@ -126,11 +146,7 @@ def test(arg_settings, testing_dataloader, model, loss_function):
 
             # Create prototype, separated from loss fuction
             n_support = arg_settings.num_support_tr
-            prototypes, classes = generate_prototype(model_output, y, n_support)
-            n_classes = len(classes)
-            n_query = y.eq(classes[0].item()).sum().item() - n_support
-            query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
-            query_samples = model_output[query_idxs]
+            n_classes, n_query, prototypes, query_samples = initialise_loss_samples(model_output, y, n_support)
 
             loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
             avg_acc.append(acc.item())
@@ -176,7 +192,8 @@ def main():
                                     step_size=arg_settings.lr_scheduler_step)
 
     # train model, obtain results from training and save the best model
-    best_state, best_acc, train_loss, train_acc, val_loss, val_acc = train(arg_settings=arg_settings,
+    best_state, best_acc, train_loss, train_acc, val_loss, val_acc = train(device=device, 
+                                                                           arg_settings=arg_settings,
                                                                            training_dataloader=training_dataloader,
                                                                            validation_dataloader=validation_dataloader,
                                                                            model=model,
@@ -185,7 +202,7 @@ def main():
                                                                            loss_function=loss_func)
 
     # test the best model from training
-    test(arg_settings=arg_settings, testing_dataloader=testing_dataloader, 
+    test(device=device, arg_settings=arg_settings, testing_dataloader=testing_dataloader, 
          model=model ,loss_function=loss_func)
 
 if __name__=='__main__':

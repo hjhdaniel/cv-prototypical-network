@@ -9,7 +9,11 @@ import os, torch
 import numpy as np
 
 from omniglot_dataset import OmniglotDataset
+from mini_imagenet_dataset import MiniImageNet
 from batch_sampler import BatchSampler
+
+import torchvision.transforms as transforms
+import torchvision.datasets as datasets
 
 class DataLoader(object):
 
@@ -19,20 +23,33 @@ class DataLoader(object):
         self.data_loader = self.set_data_loader()
 
     def data_loader(self):
-        return self.__data_loader
+        return self.data_loader
 
     def set_data_loader(self):
 
         if self.arg_settings.data=='omniglot':
-            dataset = OmniglotDataset(mode=self.mode, root=self.arg_settings.dataset_root)
+            dataset = OmniglotDataset(mode=self.mode, root=self.arg_settings.dataset_root+'/omniglot/')
             num_classes = len(np.unique(dataset.y))
             sampler = self.create_sampler(dataset.y)
 
+        elif self.arg_settings.data=='imagenet':
+            dataset = MiniImageNet(mode=self.mode, root=self.arg_settings.dataset_root+'/imagenet/')
+            num_classes = len(np.unique(dataset.label))
+            sampler = self.create_sampler(dataset.label)
+            self.arg_settings.classes_per_it_tr = 60
+            self.arg_settings.classes_per_it_val = 16
+
         # check if number of classes in dataset is sufficient
-        if num_classes < self.arg_settings.classes_per_it_tr or num_classes < self.arg_settings.classes_per_it_val:
-            raise(Exception('There are not enough classes in the dataset in order ' +
-                            'to satisfy the chosen classes_per_it. Decrease the ' +
-                            'classes_per_it_{tr/val} option and try again.'))
+        if self.mode == 'train':
+            if (num_classes < self.arg_settings.classes_per_it_tr):
+                raise(Exception('There are not enough classes in the dataset in order ' +
+                                'to satisfy the chosen classes_per_it. Decrease the ' +
+                                'classes_per_it_tr option and try again.'))
+        else:
+            if num_classes < self.arg_settings.classes_per_it_val:
+                raise(Exception('There are not enough classes in the dataset in order ' +
+                                'to satisfy the chosen classes_per_it. Decrease the ' +
+                                'classes_per_it_val option and try again.'))
 
         dataloader = torch.utils.data.DataLoader(dataset, batch_sampler=sampler)
         return dataloader

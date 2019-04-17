@@ -8,6 +8,7 @@
 import torch
 from torch.nn import functional as F
 from torch.nn.modules import Module
+import numpy as np
 
 class PrototypicalLoss(Module):
     '''
@@ -27,6 +28,8 @@ def euclidean_dist(x, y):
     '''
     # x: N x D
     # y: M x D
+    print(x.size())
+    print(y.size())
     n = x.size(0)
     m = y.size(0)
     d = x.size(1)
@@ -35,8 +38,55 @@ def euclidean_dist(x, y):
 
     x = x.unsqueeze(1).expand(n, m, d)
     y = y.unsqueeze(0).expand(n, m, d)
-
+    print(torch.pow(x - y, 2).sum(2).size())
     return torch.pow(x - y, 2).sum(2)
+
+def mahalanobis_dist(x, y):
+    '''
+    Compute mahalanobis distance between two tensors
+    '''
+    n = x.size(0)
+    m = y.size(0)
+    d = x.size(1)
+    if d != y.size(1):
+        raise Exception
+
+    # x = x.unsqueeze(1).expand(n, m, d)
+    # y = y.unsqueeze(0).expand(n, m, d)
+    # x_numpy = x.detach().cpu().numpy()
+    # y_numpy = y.detach().cpu().numpy()
+    dists = torch.empty((n, m))
+
+    cov = get_cov_mat(torch.transpose(x, 0, 1))  # x.T: row - variables, col - observations
+    cov_inv = torch.inverse(cov)
+    for i in range(m):
+        delta = x - y[i]
+        dists[:, i] = torch.sqrt(torch.einsum('ij,jj,ij->i', delta, cov_inv, delta))
+
+    return dists
+
+def get_cov_mat(matrix):
+    '''
+    Get covariance matrix that describes the gaussian distribution of support inputs
+    :param matrix: matrix of 1 set of support inputs with dimensions m x n
+           m: number of features
+           n: number of observations
+    :return: covariance matrix
+    '''
+    matrix_mean = torch.mean(matrix, dim=1)
+    x = matrix - matrix_mean[:, None]
+    cov_mat = 1 / (x.size(1) - 1) * x.mm(x.t())
+    return cov_mat
+
+def manhattan_dist(x, y):
+    n = x.size(0)
+    m = y.size(0)
+    d = x.size(1)
+    if d != y.size(1):
+        raise Exception
+    x = x.unsqueeze(1).expand(n, m, d)
+    y = y.unsqueeze(0).expand(n, m, d)
+    return torch.abs(x - y).sum(2)
 
 
 def prototypical_loss(device, n_classes, n_query, prototypes, query_samples):
@@ -49,7 +99,7 @@ def prototypical_loss(device, n_classes, n_query, prototypes, query_samples):
     classes, of appartaining to a class c, loss and accuracy are then computed
     and returned
     '''
-    dists = euclidean_dist(query_samples, prototypes)
+    dists = mahalanobis_dist(query_samples, prototypes)
 
     log_p_y = F.log_softmax(-dists, dim=1).view(n_classes, n_query, -1)
     log_p_y = log_p_y.to(device)

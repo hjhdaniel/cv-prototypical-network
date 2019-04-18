@@ -7,6 +7,7 @@
 
 import os, torch
 import numpy as np
+import sys
 from tqdm import tqdm
 
 from prototype_network import PrototypicalNetwork
@@ -49,8 +50,18 @@ def train(arg_settings, training_dataloader, model, optimizer,
         for batch in tqdm(tr_iter):
             optimizer.zero_grad()
             x, y = batch
+            #print("x.shape:", x.shape)
+            #print("y.shape:", y.shape)
+            #print("Max: {}, min: {}".format(torch.max(y), torch.min(y)))
+            #input("")
+            batch_size = x.shape[0]
+            #print("batch size:", batch_size)
             x, y = x.to(device), y.to(device)
+            # (n, 784) -> (n, 64)
             model_output = model(x) # Embedding
+            #print("output.shape:", model_output.shape)
+
+            #input("")
 
             # Create prototype, separated from loss fuction
             n_support = arg_settings.num_support_tr
@@ -161,8 +172,10 @@ def main():
 
     # load training, testing and validation datasets
     training_dataloader = DataLoader('train', arg_settings).data_loader
-    testing_dataloader = DataLoader('test', arg_settings).data_loader
     validation_dataloader = DataLoader('val', arg_settings).data_loader
+    #testing_dataloader = DataLoader('test', arg_settings).data_loader
+    testing_dataloader = None
+    
 
     # initialise prototypical network model (utilise GPU if available)
     device = 'cuda:0' if torch.cuda.is_available() and arg_settings.cuda else 'cpu'

@@ -80,18 +80,8 @@ def train(device, arg_settings, training_dataloader, model, optimizer,
         for batch in tqdm(tr_iter):
             optimizer.zero_grad()
             x, y = batch
-            #print("x.shape:", x.shape)
-            #print("y.shape:", y.shape)
-            #print("Max: {}, min: {}".format(torch.max(y), torch.min(y)))
-            #input("")
-            batch_size = x.shape[0]
-            #print("batch size:", batch_size)
             x, y = x.to(device), y.to(device)
-            # (n, 784) -> (n, 64)
             model_output = model(x) # Embedding
-            #print("output.shape:", model_output.shape)
-
-            #input("")
 
             # Create prototype, separated from loss fuction
             n_support = arg_settings.num_support_tr
@@ -171,6 +161,10 @@ def test(device, arg_settings, testing_dataloader, model, loss_function):
 def main():
     # initialise parser for arguments
     arg_settings = get_parser().parse_args()
+    if arg_settings.data != 'imagenet':
+        print("Error. Current embedding network works only with imagenet dataset.")
+        print("Run with -data imagenet")
+        sys.exit()
 
     # get directory root for saving models, losses and accuracies
     if not os.path.exists(arg_settings.experiment_root):

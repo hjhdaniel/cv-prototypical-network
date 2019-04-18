@@ -108,6 +108,7 @@ venv.bak/
 .mypy_cache/
 
 # Generated files
+dataset/cub200/*
 dataset/imagenet/data/*
 dataset/omniglot/*
 output/*

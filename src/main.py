@@ -182,10 +182,10 @@ def main():
 
     # initialise prototypical network model (utilise GPU if available)
     device = 'cuda:0' if torch.cuda.is_available() and arg_settings.cuda else 'cpu'
-    if arg_settings.data == 'imagenet':
-        model = PrototypicalNetwork(input_channel_num=3).to(device)
-    else:
+    if arg_settings.data == 'omniglot':
         model = PrototypicalNetwork().to(device)
+    else:
+        model = PrototypicalNetwork(input_channel_num=3).to(device)
 
     # initialise optimizer: Adaptive Moment Estimation (Adam)
     optimizer = torch.optim.Adam(params=model.parameters(), lr=arg_settings.learning_rate)

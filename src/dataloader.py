@@ -40,6 +40,17 @@ class DataLoader(object):
             self.arg_settings.classes_per_it_tr = 60
             self.arg_settings.classes_per_it_val = 16
 
+        elif self.arg_settings.data=='cub200':
+            trans = transforms.Compose([
+                transforms.Resize(84),
+                transforms.CenterCrop(84),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            ])
+            dataset = datasets.ImageFolder('../dataset/cub200/images', transform = trans)
+            num_classes = len(np.unique(dataset.targets))
+            sampler = self.create_sampler(dataset.targets)
+
         # check if number of classes in dataset is sufficient
         if self.mode == 'train':
             if (num_classes < self.arg_settings.classes_per_it_tr):

@@ -12,15 +12,67 @@ from tqdm import tqdm
 from prototype_network import PrototypicalNetwork
 from dataloader import DataLoader
 from loss_function import prototypical_loss as loss_func
+from loss_function import gaussian_prototypical_loss as gaussian_loss_func
 from arg_parser import get_parser
 from utils import *
-
+from torch import autograd
 
 def generate_prototype(x, y, n_support):
     classes = torch.unique(y)
     support_idxs = list(map(lambda c: y.eq(c).nonzero()[:n_support].squeeze(1), classes))
     prototypes = torch.stack([x[idx_list].mean(0) for idx_list in support_idxs])
     return prototypes, classes
+
+def get_cov_mat(matrix):
+    '''
+    Get covariance matrix that describes the gaussian distribution of support inputs
+    :param matrix: matrix of 1 set of support inputs with dimensions m x n
+           m: number of features
+           n: number of support inputs
+    :return: covariance matrix
+    '''
+    matrix_mean = torch.mean(matrix, dim=1)
+    x = matrix - matrix_mean[:, None]
+    cov_mat = 1 / (x.size(1) - 1) * x.mm(x.t())
+    return cov_mat
+
+def generate_gaussian_prototype(x, y, n_support):
+    '''
+    Get prototype gaussian distributions of support inputs
+    :param x: inputs
+    :param y: labels
+    :param n_support: number of support inputs to be used per episode
+    :return: means of prototype gaussian distributions,
+             covariance matrices of prototype gaussian distributions,
+             classes
+    '''
+    # get number of unique classes
+    classes = torch.unique(y)
+    # get support indexes w.r.t to number of support inputs
+    support_idxs = list(map(lambda c: y.eq(c).nonzero()[:n_support].squeeze(1), classes))
+
+    # initialise list of prototype means and covariance matrices w.r.t each class
+    prototype_mean = []
+    prototype_cov_mat = []
+    for idx_list in support_idxs:
+        # get one set of support inputs from support indexes
+        x_temp = x[idx_list]
+        # get mean vector of support inputs set
+        mean_temp = x_temp.mean(0)
+        # append the mean vector into prototype mean list
+        prototype_mean.append(mean_temp)
+        # get covariance matrix of support inputs set
+        cov_mat_temp = get_cov_mat(torch.t(x_temp))
+        # append the covariance matrix into prototype covariance matrix list
+        prototype_cov_mat.append(cov_mat_temp)
+
+    # stack the prototype mean vectors
+    prototype_mean = torch.stack(prototype_mean)
+    # stack the prototype covariance matrices
+    prototype_cov_mat = torch.stack(prototype_cov_mat)
+
+    return prototype_mean, prototype_cov_mat, classes
+
 
 
 def train(arg_settings, training_dataloader, model, optimizer, 
@@ -47,21 +99,22 @@ def train(arg_settings, training_dataloader, model, optimizer,
         tr_iter = iter(training_dataloader)
         model.train()
         for batch in tqdm(tr_iter):
-            optimizer.zero_grad()
-            x, y = batch
-            x, y = x.to(device), y.to(device)
-            model_output = model(x) # Embedding
+            with autograd.detect_anomaly():
+                optimizer.zero_grad()
+                x, y = batch
+                x, y = x.to(device), y.to(device)
+                model_output = model(x) # Embedding
 
-            # Create prototype, separated from loss fuction
-            n_support = arg_settings.num_support_tr
-            prototypes, classes = generate_prototype(model_output, y, n_support)
-            n_classes = len(classes)
-            n_query = y.eq(classes[0].item()).sum().item() - n_support
-            query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
-            query_samples = model_output[query_idxs]
+                # Create prototype, separated from loss function
+                n_support = arg_settings.num_support_tr
+                proto_mean, proto_cov_mat, classes = generate_gaussian_prototype(model_output, y, n_support)
+                n_classes = len(classes)
+                n_query = y.eq(classes[0].item()).sum().item() - n_support
+                query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
+                query_samples = model_output[query_idxs]
 
-            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
-            loss.backward()
+                loss, acc = gaussian_loss_func(device, n_classes, n_query, proto_mean, proto_cov_mat, query_samples)
+                loss.backward()
             optimizer.step()
             train_loss.append(loss.item())
             train_acc.append(acc.item())
@@ -83,13 +136,13 @@ def train(arg_settings, training_dataloader, model, optimizer,
 
             # Create prototype, separated from loss fuction
             n_support = arg_settings.num_support_val
-            prototypes, classes = generate_prototype(model_output, y, n_support)
+            proto_mean, proto_cov_mat, classes = generate_gaussian_prototype(model_output, y, n_support)
             n_classes = len(classes)
             n_query = y.eq(classes[0].item()).sum().item() - n_support
             query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
             query_samples = model_output[query_idxs]
 
-            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
+            loss, acc = gaussian_loss_func(device, n_classes, n_query, proto_mean, proto_cov_mat, query_samples)
             val_loss.append(loss.item())
             val_acc.append(acc.item())
 
@@ -126,13 +179,13 @@ def test(arg_settings, testing_dataloader, model, loss_function):
 
             # Create prototype, separated from loss fuction
             n_support = arg_settings.num_support_tr
-            prototypes, classes = generate_prototype(model_output, y, n_support)
+            proto_mean, proto_cov_mat, classes = generate_gaussian_prototype(model_output, y, n_support)
             n_classes = len(classes)
             n_query = y.eq(classes[0].item()).sum().item() - n_support
             query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
             query_samples = model_output[query_idxs]
 
-            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
+            loss, acc = loss_function(device, n_classes, n_query, proto_mean, proto_cov_mat, query_samples)
             avg_acc.append(acc.item())
 
     avg_acc = np.mean(avg_acc)

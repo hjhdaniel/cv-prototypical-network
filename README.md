@@ -16,6 +16,21 @@ Code Author: Daniele E. Ciriello
 4) pillow
 5) argparse
 
+## Required Datasets
+
+1) Mini-imagenet: Download link - <https://drive.google.com/open?id=0B3Irx3uQNoBMQ1FlNXJsZUdYWEE>
+
+- dataset
+  - imagenet
+    - data
+      - xxx.jpg
+      - xxx.jpg
+    - materials
+      - test.csv
+      - train.csv
+      - val.csv
+  - omniglot
+
 ## Files
 
 1) prototype_network.py: prototype network class module

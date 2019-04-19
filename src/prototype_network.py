@@ -8,7 +8,6 @@
 import torch.nn as nn
 
 class PrototypicalNetwork(nn.Module):
-
     '''
     This network non-linearly maps the input into an embedding space.
     It consists of 5 convolution blocks

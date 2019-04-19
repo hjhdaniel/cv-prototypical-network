@@ -183,8 +183,9 @@ def main():
     # load training, testing and validation datasets
     training_dataloader = DataLoader('train', arg_settings).data_loader
     validation_dataloader = DataLoader('val', arg_settings).data_loader
-    #testing_dataloader = DataLoader('test', arg_settings).data_loader
-    testing_dataloader = None
+    #validation_dataloader = None
+    testing_dataloader = DataLoader('test', arg_settings).data_loader
+    #testing_dataloader = None
     
 
     # initialise prototypical network model (utilise GPU if available)

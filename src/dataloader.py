@@ -10,6 +10,8 @@ import numpy as np
 
 from omniglot_dataset import OmniglotDataset
 from mini_imagenet_dataset import MiniImageNet
+# from cub200_dataset import Cub2011
+from cub200_dataset import CUB2002010
 from batch_sampler import BatchSampler
 
 import torchvision.transforms as transforms
@@ -37,8 +39,7 @@ class DataLoader(object):
             num_classes = len(np.unique(dataset.label))
             sampler = self.create_sampler(dataset.label)
             print('num_classes: ', num_classes,' for ',self.mode)
-            self.arg_settings.classes_per_it_tr = 60
-            self.arg_settings.classes_per_it_val = 16
+            print('Number of data: ', len(dataset))
 
         elif self.arg_settings.data=='cub200':
             trans = transforms.Compose([
@@ -47,9 +48,12 @@ class DataLoader(object):
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             ])
-            dataset = datasets.ImageFolder('../dataset/cub200/images', transform = trans)
-            num_classes = len(np.unique(dataset.targets))
-            sampler = self.create_sampler(dataset.targets)
+            dataset = CUB2002010(root=self.arg_settings.dataset_root+'/cub200/', mode=self.mode, transform = trans)
+            num_classes = len(np.unique(dataset.labels))
+            sampler = self.create_sampler(dataset.labels)
+            print('num_classes: ', num_classes,' for ',self.mode)
+            print('Num of data',len(dataset))
+
 
         # check if number of classes in dataset is sufficient
         if self.mode == 'train':

@@ -16,18 +16,9 @@ Code Author: Daniele E. Ciriello
 4) pillow
 5) argparse
 
-## Required Datasets
+## Required Datasets (Download Manually)
 
 1) **Mini-imagenet**: [Download link](https://drive.google.com/open?id=0B3Irx3uQNoBMQ1FlNXJsZUdYWEE)
-
-2) **CUB200**: Run the following
-
-```bash
-$ cd dataset/
-$ mkdir cub200 && cd cub200
-$ wget http://www.vision.caltech.edu/visipedia-data/CUB-200-2011/CUB_200_2011.tgz
-$ tar -xzf CUB_200_2011.tgz
-```
 
 ## Dataset Directories
 
@@ -36,7 +27,6 @@ $ tar -xzf CUB_200_2011.tgz
     - data **(PUT IMAGENET IMAGES HERE)**
     - materials
   - cub200
-    - images **(PUT CUB200 IMAGE FOLDERS HERE)**
   - omniglot
 
 ## Files

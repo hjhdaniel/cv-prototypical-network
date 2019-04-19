@@ -178,11 +178,18 @@ def main():
     # load training, testing and validation datasets
     training_dataloader = DataLoader('train', arg_settings).data_loader
     testing_dataloader = DataLoader('test', arg_settings).data_loader
-    validation_dataloader = DataLoader('val', arg_settings).data_loader
+    if arg_settings.data == 'cub200':
+        validation_dataloader = None
+    else:
+        validation_dataloader = DataLoader('val', arg_settings).data_loader
+
 
     # initialise prototypical network model (utilise GPU if available)
     device = 'cuda:0' if torch.cuda.is_available() and arg_settings.cuda else 'cpu'
-    model = PrototypicalNetwork().to(device)
+    if arg_settings.data == 'omniglot':
+        model = PrototypicalNetwork().to(device)
+    else:
+        model = PrototypicalNetwork(input_channel_num=3).to(device)
 
     # initialise optimizer: Adaptive Moment Estimation (Adam)
     optimizer = torch.optim.Adam(params=model.parameters(), lr=arg_settings.learning_rate)

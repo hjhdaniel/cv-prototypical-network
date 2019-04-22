@@ -10,7 +10,7 @@ import numpy as np
 import sys
 from tqdm import tqdm
 
-from prototype_network import PrototypicalNetwork
+from prototype_network import PrototypicalNetwork, PrototypicalResnet
 from dataloader import DataLoader
 from loss_function import prototypical_loss as loss_func
 from arg_parser import get_parser
@@ -191,7 +191,7 @@ def main():
     # initialise prototypical network model (utilise GPU if available)
     device = 'cuda:0' if torch.cuda.is_available() and arg_settings.cuda else 'cpu'
     if arg_settings.data == 'imagenet':
-        model = PrototypicalNetwork(input_channel_num=3).to(device)
+        model = PrototypicalResnet(input_channel_num=3).to(device)
     else:
         model = PrototypicalNetwork().to(device)
 

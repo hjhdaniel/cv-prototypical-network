@@ -24,7 +24,7 @@ Code Author: Daniele E. Ciriello
 
 - dataset
   - imagenet
-    - data **(PUT IMAGENET IMAGES HERE)**
+    - images **(PUT IMAGENET IMAGES HERE)**
     - materials
   - cub200
   - omniglot

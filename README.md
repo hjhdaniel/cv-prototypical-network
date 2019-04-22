@@ -16,19 +16,17 @@ Code Author: Daniele E. Ciriello
 4) pillow
 5) argparse
 
-## Required Datasets
+## Required Datasets (Download Manually)
 
-1) Mini-imagenet: Download link - <https://drive.google.com/open?id=0B3Irx3uQNoBMQ1FlNXJsZUdYWEE>
+1) **Mini-imagenet**: [Download link](https://drive.google.com/open?id=0B3Irx3uQNoBMQ1FlNXJsZUdYWEE)
+
+## Dataset Directories
 
 - dataset
   - imagenet
-    - data
-      - xxx.jpg
-      - xxx.jpg
+    - images **(PUT IMAGENET IMAGES HERE)**
     - materials
-      - test.csv
-      - train.csv
-      - val.csv
+  - cub200
   - omniglot
 
 ## Files

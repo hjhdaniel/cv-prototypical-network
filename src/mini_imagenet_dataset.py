@@ -21,7 +21,7 @@ class MiniImageNet(Dataset):
 
         for l in lines:
             name, wnid = l.split(',')
-            path = osp.join(root + 'data/', name)
+            path = osp.join(root + 'images/', name)
             if wnid not in self.wnids:
                 self.wnids.append(wnid)
                 lb += 1
@@ -31,13 +31,12 @@ class MiniImageNet(Dataset):
         self.data = data
         self.label = label
         self.transform = transforms.Compose([
-			transforms.Resize(224),
-			transforms.CenterCrop(224),
+			transforms.Resize(84),
+			transforms.CenterCrop(84),
 			transforms.ToTensor(),
 			transforms.Normalize(mean=[0.485, 0.456, 0.406],
 								std=[0.229, 0.224, 0.225])
 		])
-        print('Number of data: ', len(self))
 
     def __len__(self):
         return len(self.data)

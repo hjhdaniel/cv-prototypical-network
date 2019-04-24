@@ -7,4 +7,5 @@ rm -rf /tmp/cookies.txt
 
 gdrive_download 0B3Irx3uQNoBMQ1FlNXJsZUdYWEE ../dataset/imagenet/images.zip
 
-unzip -uq images.zip && rm images.zip
+unzip -uq ../dataset/imagenet/images.zip
+rm ../dataset/imagenet/images.zip

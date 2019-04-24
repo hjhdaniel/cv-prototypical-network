@@ -109,6 +109,8 @@ venv.bak/
 
 # Generated files
 dataset/cub200/*
+dataset/CUB_200_2011/*
+dataset/CIFAR/*
 dataset/imagenet/images/*
 dataset/omniglot/*
 output/*

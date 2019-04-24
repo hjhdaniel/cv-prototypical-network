@@ -10,9 +10,10 @@ import numpy as np
 
 from omniglot_dataset import OmniglotDataset
 from mini_imagenet_dataset import MiniImageNet
-# from cub200_dataset import Cub2011
 from cub200_dataset import CUB2002010
+from cub2011_dataset import CUB2011
 from batch_sampler import BatchSampler
+import torchvision.datasets as dset
 
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
@@ -43,8 +44,8 @@ class DataLoader(object):
 
         elif self.arg_settings.data=='cub200':
             trans = transforms.Compose([
-                transforms.Resize(84),
-                transforms.CenterCrop(84),
+                transforms.Resize(64),
+                transforms.CenterCrop(64),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             ])
@@ -53,7 +54,33 @@ class DataLoader(object):
             sampler = self.create_sampler(dataset.labels)
             print('num_classes: ', num_classes,' for ',self.mode)
             print('Num of data',len(dataset))
+        
+        elif self.arg_settings.data=='cub2011':
+            trans = transforms.Compose([
+                transforms.Resize(64),
+                transforms.CenterCrop(64),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            ])
+            dataset = CUB2011(root=self.arg_settings.dataset_root+'/CUB_200_2011/', transform = trans)
+            # print(dataset.labels)
+            num_classes = len(np.unique(dataset.labels))
+            sampler = self.create_sampler(dataset.labels)
+            print('num_classes: ', num_classes,' for ',self.mode)
+            print('Num of data',len(dataset))
 
+        elif self.arg_settings.data == 'CIFAR':
+            trans = transforms.Compose([
+                transforms.Resize(64),
+                transforms.CenterCrop(64),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            ])
+            dataset = dset.CIFAR100(root=self.arg_settings.dataset_root+'/CIFAR/', train=True, transform=trans, target_transform=None, download=True)
+            num_classes = len(np.unique(dataset.targets))
+            sampler = self.create_sampler(dataset.targets)
+            print('num_classes: ', num_classes,' for ',self.mode)
+            print('Num of data',len(dataset))
 
         # check if number of classes in dataset is sufficient
         if self.mode == 'train':

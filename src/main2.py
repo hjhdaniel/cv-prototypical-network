@@ -68,15 +68,21 @@ def initialise_loss_samples_gaussian(model_output, y, n_support):
     query_samples = model_output[query_idxs]
     return n_classes, n_query, query_samples, gaussian_prototypes, support_inv_sigmas
 
-def generate_gaussian_prototype(model_output, y, n_support, classes):
+def generate_gaussian_prototype(model_output, y, n_support, classes, mode="radial"):
     support_idxs = list(map(lambda c: y.eq(c).nonzero()[:n_support].squeeze(1), classes))
-    x_embedding_points, sigmas = torch.split(model_output, int(model_output.size(1)/2), dim=1)
+    if mode == "diagonal":
+        x_embedding_points, sigmas = torch.split(model_output, int(model_output.size(1)/2), dim=1)
+    elif mode == "radial":
+        x_embedding_points, sigma = model_output[:, :int(model_output.size(1) - 1)], model_output[:, -1]
+        # print(sigma.size())
+        # print(x_embedding_points.size())
+        # print(model_output.size())
+        sigmas = sigma.unsqueeze(1).expand(model_output.size(0), x_embedding_points.size(1))
     sigmas = torch.nn.functional.softplus(sigmas) + 1
     # embeddings of support points per class
     support_samples = [x_embedding_points[idx_list] for idx_list in support_idxs]
     # sigmas per class
     support_sigmas = [sigmas[idx_list] for idx_list in support_idxs]
-    
     prototypes = []
     sigmas_inverse = []
     for idx, support_sample in enumerate(support_samples):
@@ -90,7 +96,7 @@ def generate_gaussian_prototype(model_output, y, n_support, classes):
 
 
 def train(device, arg_settings, training_dataloader, model, optimizer, 
-          lr_scheduler, loss_function, validation_dataloader=None):
+          lr_scheduler, loss_function, criterion, validation_dataloader=None):
 
     if validation_dataloader is None:
         best_state = None
@@ -120,7 +126,7 @@ def train(device, arg_settings, training_dataloader, model, optimizer,
             n_support = arg_settings.num_support_tr
             n_classes, n_query, query_samples, prototypes, support_inv_sigmas = initialise_loss_samples_gaussian(model_output, y, n_support)
 
-            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples, support_inv_sigmas)
+            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples, support_inv_sigmas, criterion)
             loss.backward()
             optimizer.step()
             train_loss.append(loss.item())
@@ -143,9 +149,8 @@ def train(device, arg_settings, training_dataloader, model, optimizer,
 
             # Create prototype, separated from loss fuction
             n_support = arg_settings.num_support_val
-            n_classes, n_query, prototypes, query_samples = initialise_loss_samples(model_output, y, n_support)
-
-            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
+            n_classes, n_query, query_samples, prototypes, support_inv_sigmas = initialise_loss_samples_gaussian(model_output, y, n_support)
+            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples, support_inv_sigmas, criterion)
             val_loss.append(loss.item())
             val_acc.append(acc.item())
 
@@ -169,7 +174,7 @@ def train(device, arg_settings, training_dataloader, model, optimizer,
     return best_state, best_acc, train_loss, train_acc, val_loss, val_acc
 
 
-def test(device, arg_settings, testing_dataloader, model, loss_function):
+def test(device, arg_settings, testing_dataloader, model, loss_function, criterion):
     avg_acc = list()
     for epoch in range(10):
         test_iter = iter(testing_dataloader)
@@ -180,9 +185,9 @@ def test(device, arg_settings, testing_dataloader, model, loss_function):
 
             # Create prototype, separated from loss fuction
             n_support = arg_settings.num_support_tr
-            n_classes, n_query, prototypes, query_samples = initialise_loss_samples(model_output, y, n_support)
+            n_classes, n_query, query_samples, prototypes, support_inv_sigmas  = initialise_loss_samples_gaussian(model_output, y, n_support)
 
-            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
+            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples, support_inv_sigmas, criterion)
             avg_acc.append(acc.item())
 
     avg_acc = np.mean(avg_acc)
@@ -217,10 +222,13 @@ def main():
     # initialise prototypical network model (utilise GPU if available)
     device = 'cuda:0' if torch.cuda.is_available() and arg_settings.cuda else 'cpu'
     # model = PrototypicalNetwork().to(device)
-    model = GaussianPrototypicalNetwork().to(device)
+    model = GaussianPrototypicalNetwork(gaussian_mode="radial").to(device)
 
     # initialise optimizer: Adaptive Moment Estimation (Adam)
     optimizer = torch.optim.Adam(params=model.parameters(), lr=arg_settings.learning_rate)
+    # Loss function
+    criterion = torch.nn.CrossEntropyLoss()
+
 
     # initialise learning rate scheduler
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, gamma=arg_settings.lr_scheduler_gamma,
@@ -234,11 +242,12 @@ def main():
                                                                            model=model,
                                                                            optimizer=optimizer,
                                                                            lr_scheduler=lr_scheduler,
-                                                                           loss_function=gaussian_loss_func)
+                                                                           loss_function=gaussian_loss_func,
+                                                                           criterion=criterion)
 
     # test the best model from training
     test(device=device, arg_settings=arg_settings, testing_dataloader=testing_dataloader, 
-         model=model ,loss_function=loss_func)
+         model=model ,loss_function=gaussian_loss_func, criterion=criterion)
 
 if __name__=='__main__':
     main()

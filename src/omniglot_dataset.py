@@ -141,7 +141,7 @@ def find_items(root_dir, classes):
     rots = ['/rot000', '/rot090', '/rot180', '/rot270']
     for (root, dirs, files) in os.walk(root_dir):
         for f in files:
-            r = root.split('/')
+            r = root.split('\\')
             lr = len(r)
             label = r[lr - 2] + "/" + r[lr - 1]
             for rot in rots:

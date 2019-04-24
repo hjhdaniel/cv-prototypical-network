@@ -65,43 +65,39 @@ def prototypical_loss(device, n_classes, n_query, prototypes, query_samples):
 
     return loss_val,  acc_val
 
-def gaussian_prototypical_loss(device, n_classes, n_query, prototypes, query_samples, support_inv_sigmas):
+def gaussian_prototypical_loss(device, n_classes, n_query, prototypes, query_samples, support_inv_sigmas, criterion):
     # query samples 300 x 128
     # prototypes 60 x 64
     # sigmas 60 x 64
-    dists = gaussian_dist(query_samples, prototypes, support_inv_sigmas)
-    print(dists)
-    print(dists.size())
-    y_predicted = torch.argmin(dists, dim=1)
-
-    loss = (1/n_classes) * CrossEntropyLoss(-dists)
-    log_p_y = F.log_softmax(-dists, dim=1).view(n_classes, n_query, -1)
-    log_p_y = log_p_y.to(device)
-
-    target_inds = torch.arange(0, n_classes)
-    target_inds = target_inds.view(n_classes, 1, 1)
-    target_inds = target_inds.expand(n_classes, n_query, 1).long()
-    target_inds = target_inds.to(device)
+    dists = gaussian_dist(query_samples, prototypes, support_inv_sigmas) # [60, 5]
     
-    loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
-    _, y_hat = log_p_y.max(2)
-    acc_val = y_hat.eq(target_inds.squeeze()).float().mean()
+    y_predicted = torch.argmin(dists, dim=0)
+    y_target = torch.ones(query_samples.size(0))
+    for i in range(n_classes):
+        y_target[n_query*i:n_query*(i+1)] *= i
+    y_target = y_target.long()
 
-    return loss_val,  acc_val
+    loss = criterion(-dists.transpose(0, 1), y_target)
+    acc = y_predicted.eq(y_target).float().mean()
 
-def gaussian_dist(x, y, sigmas):
+    return loss,  acc
+
+def gaussian_dist(x, y, sigmas, mode="radial"):
     n_points = x.size(0)
     n_classes = y.size(0)
-    n_dim_x = x.size(1)
+    n_dim_x = x.size(0)
     n_dim = y.size(1)
-    # 300 x 60 x 64
-    
-    # x = x.unsqueeze(1).expand(n_points, n_classes, n_dim_x)
-    # y = y.unsqueeze(0).expand(n_points, n_classes, n_dim)
-    x_encoded, sigmas = torch.split(x, int(x.size(1)/2), dim=1)
-
-    dists = torch.empty((n_points, n_classes))
+    n_query_samples = int(n_points / n_classes)
+    # x size: 300, 128
+    # y size: 60 64
+    #sigmas size: 60 64
+    if mode == "diagonal":
+        x_encoded, _ = torch.split(x, int(x.size(1)/2), dim=1)
+    elif mode == "radial":
+        x_encoded = x[:, :int(x.size(1) - 1)]
+    dists = torch.empty((n_classes, n_dim_x))
     for i in range(n_classes):
-        delta = x_encoded - y[i]
-        dists[:, i] = torch.norm(delta * torch.sqrt(sigmas.view(1, -1)), dim=1)
+        delta = x_encoded - y[i] # [300, 64]
+        dist = delta * torch.sqrt(sigmas[i, :].unsqueeze(0))
+        dists[i, :] = torch.norm(dist, dim=1)
     return dists

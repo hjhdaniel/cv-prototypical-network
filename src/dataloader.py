@@ -37,8 +37,8 @@ class DataLoader(object):
             num_classes = len(np.unique(dataset.label))
             sampler = self.create_sampler(dataset.label)
             print('num_classes: ', num_classes,' for ',self.mode)
-            self.arg_settings.classes_per_it_tr = 60
-            self.arg_settings.classes_per_it_val = 16
+            # self.arg_settings.classes_per_it_tr = 60
+            # self.arg_settings.classes_per_it_val = 16
 
         # check if number of classes in dataset is sufficient
         if self.mode == 'train':

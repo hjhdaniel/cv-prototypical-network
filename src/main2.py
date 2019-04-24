@@ -222,7 +222,10 @@ def main():
     # initialise prototypical network model (utilise GPU if available)
     device = 'cuda:0' if torch.cuda.is_available() and arg_settings.cuda else 'cpu'
     # model = PrototypicalNetwork().to(device)
-    model = GaussianPrototypicalNetwork(gaussian_mode="radial").to(device)
+    if arg_settings.data == 'imagenet':
+        model = GaussianPrototypicalNetwork(input_channel_num=3, gaussian_mode="radial").to(device)
+    else:
+        model = GaussianPrototypicalNetwork(gaussian_mode="radial").to(device)
 
     # initialise optimizer: Adaptive Moment Estimation (Adam)
     optimizer = torch.optim.Adam(params=model.parameters(), lr=arg_settings.learning_rate)

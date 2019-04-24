@@ -51,14 +51,10 @@ def mahalanobis_dist(x, y):
     if d != y.size(1):
         raise Exception
 
-    # x = x.unsqueeze(1).expand(n, m, d)
-    # y = y.unsqueeze(0).expand(n, m, d)
-    # x_numpy = x.detach().cpu().numpy()
-    # y_numpy = y.detach().cpu().numpy()
     dists = torch.empty((n, m))
 
     cov = get_cov_mat(torch.transpose(x, 0, 1))  # x.T: row - variables, col - observations
-    cov_inv = torch.inverse(cov)
+    cov_inv = torch.pinverse(cov)
     for i in range(m):
         delta = x - y[i]
         dists[:, i] = torch.sqrt(torch.einsum('ij,jj,ij->i', delta, cov_inv, delta))
@@ -99,7 +95,7 @@ def prototypical_loss(device, n_classes, n_query, prototypes, query_samples):
     classes, of appartaining to a class c, loss and accuracy are then computed
     and returned
     '''
-    dists = mahalanobis_dist(query_samples, prototypes)
+    dists = manhattan_dist(query_samples, prototypes)
 
     log_p_y = F.log_softmax(-dists, dim=1).view(n_classes, n_query, -1)
     log_p_y = log_p_y.to(device)

@@ -16,15 +16,19 @@ Code Author: Daniele E. Ciriello
 4) pillow
 5) argparse
 
-## Required Datasets (Download Manually)
+## Instruction to setup datasets
 
-1) **Mini-imagenet**: [Download link](https://drive.google.com/open?id=0B3Irx3uQNoBMQ1FlNXJsZUdYWEE)
+Setup **Mini-imagenet** by running the following or download manually from [Download link](https://drive.google.com/open?id=0B3Irx3uQNoBMQ1FlNXJsZUdYWEE):
+
+```bash
+cd scripts/ && bash download_imagenet.sh
+```
 
 ## Dataset Directories
 
 - dataset
   - imagenet
-    - images **(PUT IMAGENET IMAGES HERE)**
+    - images
     - materials
   - cub200
   - omniglot

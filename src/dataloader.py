@@ -13,7 +13,6 @@ from mini_imagenet_dataset import MiniImageNet
 from cub200_dataset import CUB2002010
 from cub2011_dataset import CUB2011
 from batch_sampler import BatchSampler
-import torchvision.datasets as dset
 
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
@@ -71,12 +70,15 @@ class DataLoader(object):
 
         elif self.arg_settings.data == 'CIFAR':
             trans = transforms.Compose([
-                transforms.Resize(64),
-                transforms.CenterCrop(64),
+                transforms.Resize(84),
+                transforms.CenterCrop(84),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             ])
-            dataset = dset.CIFAR100(root=self.arg_settings.dataset_root+'/CIFAR/', train=True, transform=trans, target_transform=None, download=True)
+            if self.mode == "train":
+                dataset = datasets.CIFAR100(root=self.arg_settings.dataset_root+'/CIFAR/', train=True, transform=trans, target_transform=None, download=True)
+            else:
+                dataset = datasets.CIFAR100(root=self.arg_settings.dataset_root+'/CIFAR/', train=False, transform=trans, target_transform=None, download=True)
             num_classes = len(np.unique(dataset.targets))
             sampler = self.create_sampler(dataset.targets)
             print('num_classes: ', num_classes,' for ',self.mode)

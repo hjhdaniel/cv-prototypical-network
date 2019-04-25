@@ -10,7 +10,7 @@ import numpy as np
 import sys
 from tqdm import tqdm
 
-from prototype_network import PrototypicalNetwork, PrototypicalResnet
+from prototype_network import PrototypicalNetwork, PrototypicalResnet, CustomConvNet, FCNet
 from dataloader import DataLoader
 from loss_function import prototypical_loss as loss_func
 from arg_parser import get_parser
@@ -138,7 +138,8 @@ def train(device, arg_settings, training_dataloader, model, optimizer,
 
 def test(device, arg_settings, testing_dataloader, model, loss_function):
     avg_acc = list()
-    for epoch in range(10):
+    for epoch in range(5):
+        print("Testing epoch {}/9".format(epoch))
         test_iter = iter(testing_dataloader)
         for batch in test_iter:
             x, y = batch
@@ -161,10 +162,12 @@ def test(device, arg_settings, testing_dataloader, model, loss_function):
 def main():
     # initialise parser for arguments
     arg_settings = get_parser().parse_args()
+    """
     if arg_settings.data != 'imagenet':
         print("Error. Current embedding network works only with imagenet dataset.")
         print("Run with -data imagenet")
         sys.exit()
+    """
 
     # get directory root for saving models, losses and accuracies
     if not os.path.exists(arg_settings.experiment_root):
@@ -186,7 +189,8 @@ def main():
     if arg_settings.data == 'cub200':
         validation_dataloader = None
     else:
-        validation_dataloader = DataLoader('val', arg_settings).data_loader
+        #validation_dataloader = DataLoader('val', arg_settings).data_loader
+        validation_dataloader = None
 
 
     # initialise prototypical network model (utilise GPU if available)
@@ -194,7 +198,10 @@ def main():
     if arg_settings.data == 'omniglot':
         model = PrototypicalNetwork().to(device)
     else:
-        model = PrototypicalNetwork(input_channel_num=3).to(device)
+        #model = PrototypicalResnet(output_size=1600).to(device)
+        #model = PrototypicalNetwork(input_channel_num=3).to(device)
+        model = CustomConvNet().to(device)
+        #model = FCNet().to(device)
 
     # initialise optimizer: Adaptive Moment Estimation (Adam)
     optimizer = torch.optim.Adam(params=model.parameters(), lr=arg_settings.learning_rate)

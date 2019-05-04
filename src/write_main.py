@@ -1,98 +1,19 @@
+# Reference Paper: Prototypical Networks for Few shot Learning in PyTorch
+# Reference Paper URL: https://arxiv.org/pdf/1703.05175v2.pdf
+# Reference Paper Authors: Jake Snell, Kevin Swersky, Richard S. Zemel
+
+# Reference Code: https://github.com/orobix/Prototypical-Networks-for-Few-shot-Learning-PyTorch
+# Reference Code Author: Daniele E. Ciriello
+
 import os, torch
-import torch.nn as nn
-from torch.nn import functional as F
-from torch.nn.modules import Module
 import numpy as np
 from tqdm import tqdm
 
+from prototype_network import PrototypicalNetwork
 from dataloader import DataLoader
+from loss_function import prototypical_loss as loss_func
 from arg_parser import get_parser
 from utils import *
-
-
-class PrototypicalLoss(Module):
-    '''
-    Loss class deriving from Module for the prototypical loss function defined below
-    '''
-    def __init__(self, n_support):
-        super(PrototypicalLoss, self).__init__()
-        self.n_support = n_support
-
-    def forward(self, input, target):
-        return prototypical_loss(input, target, self.n_support)
-
-
-def euclidean_dist(x, y):
-    '''
-    Compute euclidean distance between two tensors
-    '''
-    # x: N x D
-    # y: M x D
-    n = x.size(0)
-    m = y.size(0)
-    d = x.size(1)
-    if d != y.size(1):
-        raise Exception
-
-    x = x.unsqueeze(1).expand(n, m, d)
-    y = y.unsqueeze(0).expand(n, m, d)
-    return torch.pow(x - y, 2).sum(2)
-
-
-def prototypical_loss(device, n_classes, n_query, feature_prototypes, feature_query_samples):
-    feature_dists = []
-    for query_samples, prototypes in zip(feature_query_samples, feature_prototypes):
-        dist = euclidean_dist(query_samples, prototypes)
-        feature_dists.append(dist)
-    mean_dist = sum(feature_dists) / len(feature_dists)
-
-    log_p_y = F.log_softmax(-mean_dist, dim=1).view(n_classes, n_query, -1)
-    log_p_y = log_p_y.to(device)
-
-    target_inds = torch.arange(0, n_classes)
-    target_inds = target_inds.view(n_classes, 1, 1)
-    target_inds = target_inds.expand(n_classes, n_query, 1).long()
-    target_inds = target_inds.to(device)
-    
-    loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
-    _, y_hat = log_p_y.max(2)
-    acc_val = y_hat.eq(target_inds.squeeze()).float().mean()
-    return loss_val, acc_val
-
-
-class FeaturePrototypicalNetwork(nn.Module):
-    '''
-    This network non-linearly maps the input into an embedding space.
-    It consists of 5 convolution blocks
-    Each convolution block consists of:
-        -3X3 convolution
-        -Batch normalization
-        -ReLU non-linearity
-        -2X2 maxpooling
-    '''
-    def __init__(self, input_channel_num=1, hidden_channel_num=64, output_channel_num=64):
-        super(FeaturePrototypicalNetwork, self).__init__()        
-        self.conv1 = self.convolution_block(input_channel_num, hidden_channel_num)
-        self.conv2 = self.convolution_block(hidden_channel_num, hidden_channel_num)
-        self.conv3 = self.convolution_block(hidden_channel_num, hidden_channel_num)
-        self.conv4 = self.convolution_block(hidden_channel_num, output_channel_num)
-        
-    def convolution_block(self, input_channel_num, output_channel_num):
-        return nn.Sequential(nn.Conv2d(input_channel_num, output_channel_num, 3, padding=1),
-                             nn.BatchNorm2d(output_channel_num),
-                             nn.ReLU(),
-                             nn.MaxPool2d(2))
-    
-    def forward(self, input):
-        conv1_out = self.conv1(input)
-        conv2_out = self.conv2(conv1_out)
-        conv3_out = self.conv3(conv2_out)
-        conv4_out = self.conv4(conv3_out)
-        output = conv4_out.view(conv4_out.size(0), -1)
-        conv1_out = torch.mean(conv1_out, (3, 2)) # sum over feature space
-        conv2_out = torch.mean(conv2_out, (3, 2))
-        conv3_out = torch.mean(conv3_out, (3, 2))
-        return conv1_out, conv2_out, conv3_out, output
 
 
 def generate_prototype(model_output, y, n_support, classes):
@@ -107,6 +28,7 @@ def generate_prototype(model_output, y, n_support, classes):
         prototypes: tensor of mean embedding of each class, shape(60, 64)
     """
     support_idxs = list(map(lambda c: y.eq(c).nonzero()[:n_support].squeeze(1), classes))
+    # print("Support idx: {}".format(support_idxs))
     prototypes = torch.stack([model_output[idx_list].mean(0) for idx_list in support_idxs])
     return prototypes
 
@@ -127,17 +49,10 @@ def initialise_loss_samples(model_output, y, n_support):
     n_classes = len(classes)
     n_query = y.eq(classes[0].item()).sum().item() - n_support
 
-    feature_prototypes = []
-    feature_query_samples = []
-
-    for feature in model_output:
-        prototypes = generate_prototype(feature, y, n_support, classes)
-        query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
-        query_samples = feature[query_idxs]
-        feature_prototypes.append(prototypes)
-        feature_query_samples.append(query_samples)
-
-    return n_classes, n_query, feature_prototypes, feature_query_samples
+    prototypes = generate_prototype(model_output, y, n_support, classes)
+    query_idxs = torch.stack(list(map(lambda c: y.eq(c).nonzero()[n_support:], classes))).view(-1)
+    query_samples = model_output[query_idxs]
+    return n_classes, n_query, prototypes, query_samples
 
 
 def train(device, arg_settings, training_dataloader, model, optimizer, 
@@ -172,9 +87,9 @@ def train(device, arg_settings, training_dataloader, model, optimizer,
 
             # Create prototype, separated from loss fuction
             n_support = arg_settings.num_support_tr
-            n_classes, n_query, feature_prototypes, feature_query_samples = initialise_loss_samples(model_output, y, n_support)
+            n_classes, n_query, prototypes, query_samples = initialise_loss_samples(model_output, y, n_support)
 
-            loss, acc = loss_function(device, n_classes, n_query, feature_prototypes, feature_query_samples)
+            loss, acc = loss_function(device, n_classes, n_query, prototypes, query_samples)
             loss.backward()
             optimizer.step()
             train_loss.append(loss.item())
@@ -243,6 +158,7 @@ def test(device, arg_settings, testing_dataloader, model, loss_function):
 
     avg_acc = np.mean(avg_acc)
     print('Test Acc: {}'.format(avg_acc))
+
     return avg_acc
 
 
@@ -267,11 +183,18 @@ def main():
     # load training, testing and validation datasets
     training_dataloader = DataLoader('train', arg_settings).data_loader
     testing_dataloader = DataLoader('test', arg_settings).data_loader
-    validation_dataloader = DataLoader('val', arg_settings).data_loader
+    if arg_settings.data == 'cub200':
+        validation_dataloader = None
+    else:
+        validation_dataloader = DataLoader('val', arg_settings).data_loader
+
 
     # initialise prototypical network model (utilise GPU if available)
     device = 'cuda:0' if torch.cuda.is_available() and arg_settings.cuda else 'cpu'
-    model = FeaturePrototypicalNetwork().to(device)
+    if arg_settings.data == 'omniglot':
+        model = PrototypicalNetwork().to(device)
+    else:
+        model = PrototypicalNetwork(input_channel_num=3).to(device)
 
     # initialise optimizer: Adaptive Moment Estimation (Adam)
     optimizer = torch.optim.Adam(params=model.parameters(), lr=arg_settings.learning_rate)
@@ -288,12 +211,11 @@ def main():
                                                                            model=model,
                                                                            optimizer=optimizer,
                                                                            lr_scheduler=lr_scheduler,
-                                                                           loss_function=prototypical_loss)
+                                                                           loss_function=loss_func)
 
     # test the best model from training
     test(device=device, arg_settings=arg_settings, testing_dataloader=testing_dataloader, 
-         model=model ,loss_function=prototypical_loss)
-
+         model=model ,loss_function=loss_func)
 
 if __name__=='__main__':
     main()

@@ -39,4 +39,18 @@ Code Author: Daniele E. Ciriello
 6) test.py: test module
 7) parser.py: parser to handle arguments in commandline
 8) main.py: main code to run (edit this to change parameters for training/testing)
+<<<<<<< HEAD
 9) omniglot_dataset.py: for loading omniglot dataset
+=======
+9) omniglot_dataset.py: for loading omniglot dataset
+
+## Improvements and associated branches
+
+| Improvements                             | Branch Name                             |
+| ---------------------------------------- | --------------------------------------- |
+| Embedding Architecture                   | embedding-architecture                  |
+| Exploration of New Distance Functions    | new-distance-functions                  |
+| Soft clustering with Gaussian prototypes | gaussian-prototypes<br />gaussian-paper |
+| Feature Extraction for Embeddings        | feature-extraction-embeddings           |
+| New Datasets                             | new-datasets                            |
+>>>>>>> 4bf299b561d09b8fc425fbd2c6a805152bd02808

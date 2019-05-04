@@ -29,19 +29,20 @@ class CUB2011(Dataset):
                              names=['img_id', 'filepath'])
         image_class_labels = pd.read_csv(os.path.join(self.root, 'CUB_200_2011', 'image_class_labels.txt'),
                                          sep=' ', names=['img_id', 'target'])
-        train_test_split = pd.read_csv(os.path.join(self.root, 'CUB_200_2011', 'train_test_split.txt'),
-                                       sep=' ', names=['img_id', 'is_training_img'])
-
+        split = pd.read_csv(os.path.join(self.root, 'CUB_200_2011', 'split.txt'),
+                                       sep=' ', names=['img_id', 'mode'])
         data = images.merge(image_class_labels, on='img_id')
-        self.data = data.merge(train_test_split, on='img_id')
-        self.labels = data.target
-
+        self.data = data.merge(split, on='img_id')
+        
         if self.mode == 'train':
-            self.data = self.data[self.data.is_training_img == 1]
-            self.labels = self.labels[self.data.is_training_img == 1]
-        else:
-            self.data = self.data[self.data.is_training_img == 0]
-            self.labels = self.labels[self.data.is_training_img == 0]
+            self.data = self.data.loc[self.data['mode'] == 0]
+            self.labels = tuple(self.data.loc[self.data['mode'] == 0].target)
+        elif self.mode == 'val':
+            self.data = self.data.loc[self.data['mode'] == 1]
+            self.labels = tuple(self.data.loc[self.data['mode'] == 1].target)
+        else: #'test'
+            self.data = self.data.loc[self.data['mode'] == 2]
+            self.labels = tuple(self.data.loc[self.data['mode'] == 2].target)
 
     def _check_integrity(self):
         try:
@@ -72,7 +73,7 @@ class CUB2011(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        sample = self.data.iloc[idx]
+        sample = self.data.iloc[idx.item()]
         path = os.path.join(self.root, self.base_folder, sample.filepath)
         target = sample.target - 1  # Targets start at 1 by default, so shift to 0
         img = self.loader(path)

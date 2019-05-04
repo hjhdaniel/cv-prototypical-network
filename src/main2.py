@@ -1,10 +1,3 @@
-# Reference Paper: Prototypical Networks for Few shot Learning in PyTorch
-# Reference Paper URL: https://arxiv.org/pdf/1703.05175v2.pdf
-# Reference Paper Authors: Jake Snell, Kevin Swersky, Richard S. Zemel
-
-# Reference Code: https://github.com/orobix/Prototypical-Networks-for-Few-shot-Learning-PyTorch
-# Reference Code Author: Daniele E. Ciriello
-
 import os, torch
 import numpy as np
 from tqdm import tqdm
@@ -58,7 +51,6 @@ def initialise_loss_samples(model_output, y, n_support):
 def initialise_loss_samples_gaussian(model_output, y, n_support):
     """"""
     # Assume diagonal mode for now
-    # x_embedding_points, sigma = torch.split(model_output, int(model_output.size(1)/2), dim=1)
     classes = torch.unique(y)
     n_classes = len(classes)
     n_query = y.eq(classes[0].item()).sum().item() - n_support
@@ -74,9 +66,6 @@ def generate_gaussian_prototype(model_output, y, n_support, classes, mode="radia
         x_embedding_points, sigmas = torch.split(model_output, int(model_output.size(1)/2), dim=1)
     elif mode == "radial":
         x_embedding_points, sigma = model_output[:, :int(model_output.size(1) - 1)], model_output[:, -1]
-        # print(sigma.size())
-        # print(x_embedding_points.size())
-        # print(model_output.size())
         sigmas = sigma.unsqueeze(1).expand(model_output.size(0), x_embedding_points.size(1))
     sigmas = torch.nn.functional.softplus(sigmas) + 1
     # embeddings of support points per class

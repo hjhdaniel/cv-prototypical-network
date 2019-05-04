@@ -10,7 +10,6 @@ class GaussianPrototypicalNetwork(nn.Module):
         else:
             print("Invalid gaussian mode specified")
             return
-        #TODO: implement big architecture of [128, 256, 512, D]
         self.embedder = nn.Sequential(
             self.convolution_block(input_channel_num, hidden_channel_num),
             self.convolution_block(hidden_channel_num, hidden_channel_num),

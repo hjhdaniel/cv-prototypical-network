@@ -10,7 +10,6 @@ import numpy as np
 
 from omniglot_dataset import OmniglotDataset
 from mini_imagenet_dataset import MiniImageNet
-from cub200_dataset import CUB2002010
 from cub2011_dataset import CUB2011
 from batch_sampler import BatchSampler
 

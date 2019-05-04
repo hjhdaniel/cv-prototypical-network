@@ -39,10 +39,23 @@ Code Author: Daniele E. Ciriello
 6) test.py: test module
 7) parser.py: parser to handle arguments in commandline
 8) main.py: main code to run (edit this to change parameters for training/testing)
-<<<<<<< HEAD
 9) omniglot_dataset.py: for loading omniglot dataset
-=======
-9) omniglot_dataset.py: for loading omniglot dataset
+10) feature_proto.py: main code to run model with extraction of features
+
+## Performances
+
+To reproduce the results below:
+
+| Model | 5-shot (5-way Acc.) | 1 -shot (5-way Acc.) | 1-shot (20-way Acc.)|
+| --- | --- | --- | --- |
+| Original | 99.7% | 98.8% | 94.7% |
+| Feature Extraction | 99.5%* | 98.3%°| 94.6%°° |
+
+\* achieved running `python feature_proto.py --cuda` (default)
+
+° achieved running `python feature_proto.py --cuda -nsTr 1 -nsVa 1`
+
+°° achieved running `python feature_proto.py --cuda -nsTr 1 -nsVa 1 -cVa 20`
 
 ## Improvements and associated branches
 
@@ -53,4 +66,3 @@ Code Author: Daniele E. Ciriello
 | Soft clustering with Gaussian prototypes | gaussian-prototypes<br />gaussian-paper |
 | Feature Extraction for Embeddings        | feature-extraction-embeddings           |
 | New Datasets                             | new-datasets                            |
->>>>>>> 4bf299b561d09b8fc425fbd2c6a805152bd02808

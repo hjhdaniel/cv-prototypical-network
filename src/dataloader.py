@@ -38,24 +38,6 @@ class DataLoader(object):
             dataset = MiniImageNet(mode=self.mode, root=self.arg_settings.dataset_root+'/imagenet/')
             num_classes = len(np.unique(dataset.label))
             sampler = self.create_sampler(dataset.label)
-            print('num_classes: ', num_classes,' for ',self.mode)
-            print('Number of data: ', len(dataset))
-
-        elif self.arg_settings.data=='cub200':
-            trans = transforms.Compose([
-                transforms.Resize(64),
-                transforms.CenterCrop(64),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-            ])
-            # dataset = CUB2002010(root=self.arg_settings.dataset_root+'/cub200/', mode=self.mode, transform = trans)
-            # num_classes = len(np.unique(dataset.labels))
-            # sampler = self.create_sampler(dataset.labels)
-            dataset = datasets.ImageFolder('../dataset/CUB_200_2011/CUB_200_2011/images', transform = trans)
-            num_classes = len(np.unique(dataset.targets))
-            sampler = self.create_sampler(dataset.targets)
-            print('num_classes: ', num_classes,' for ',self.mode)
-            print('Num of data',len(dataset))
         
         elif self.arg_settings.data=='cub2011':
             trans = transforms.Compose([
@@ -67,22 +49,18 @@ class DataLoader(object):
             dataset = CUB2011(mode=self.mode, root=self.arg_settings.dataset_root+'/CUB_200_2011/', transform = trans)
             num_classes = len(np.unique(dataset.labels))
             sampler = self.create_sampler(dataset.labels)
-            print('num_classes: ', num_classes,' for ',self.mode)
-            print('Num of data',len(dataset))
 
-        elif self.arg_settings.data == 'cifar':
+        elif self.arg_settings.data == 'cifar100':
             trans = transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             ])
-            if self.mode == "train":
-                dataset = datasets.CIFAR100(root=self.arg_settings.dataset_root+'/CIFAR/', train=True, transform=trans, target_transform=None, download=True)
-            else:
-                dataset = datasets.CIFAR100(root=self.arg_settings.dataset_root+'/CIFAR/', train=False, transform=trans, target_transform=None, download=True)
+            dataset = datasets.ImageFolder(os.path.join('../dataset/cifar100',self.mode), transform = trans)
             num_classes = len(np.unique(dataset.targets))
             sampler = self.create_sampler(dataset.targets)
-            print('num_classes: ', num_classes,' for ',self.mode)
-            print('Num of data',len(dataset))
+
+        print('Num of class: {} for {}'.format(num_classes,self.mode))
+        print('Num of data {}'.format(len(dataset)))
 
         # check if number of classes in dataset is sufficient
         if self.mode == 'train':

@@ -24,14 +24,28 @@ Setup **Mini-imagenet** by running the following or download manually from [Down
 cd scripts/ && bash download_imagenet.sh
 ```
 
+Setup **CUB2011** by running the following:
+
+```bash
+cd scripts/ && python split_cub2011.py
+```
+
+Setup **cifar100** by download dataset manually from [CIFAR-100 python version](https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz) and put it in dataset/CIFAR/, then run following:
+
+```bash
+cd scripts/ && python extract_cifar100.py
+python split_cifar100.py
+```
+
+
+
 ## Dataset Directories
 
 - dataset
-  - imagenet
-    - images
-    - materials
-  - cub200
   - omniglot
+  - imagenet
+  - cub2011
+  - cifar100
 
 ## Files
 

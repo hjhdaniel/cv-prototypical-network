@@ -178,10 +178,7 @@ def main():
     # load training, testing and validation datasets
     training_dataloader = DataLoader('train', arg_settings).data_loader
     testing_dataloader = DataLoader('test', arg_settings).data_loader
-    if arg_settings.data == 'cub200' or arg_settings.data == 'CIFAR':
-        validation_dataloader = None
-    else:
-        validation_dataloader = DataLoader('val', arg_settings).data_loader
+    validation_dataloader = DataLoader('val', arg_settings).data_loader
 
 
     # initialise prototypical network model (utilise GPU if available)

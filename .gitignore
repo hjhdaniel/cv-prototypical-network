@@ -114,6 +114,7 @@ dataset/CUB_200_2011/*
 dataset/CUB_200_2011/CUB_200_2011/*
 !dataset/CUB_200_2011/CUB_200_2011/split.txt
 dataset/CIFAR/*
+dataset/cifar100/*
 dataset/imagenet/images/*
 dataset/omniglot/*
 output/*

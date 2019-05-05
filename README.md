@@ -43,4 +43,20 @@ Code Author: Daniele E. Ciriello
 ## Changes
 
 * Implemented two different distance functions - Manhattan Distance & Mahalanobis Distance
-* The changes are done in `src/loss_function.py`
+* The changes are done in `loss_function.py`
+
+## Performances
+
+**Omniglot dataset**
+| Distance Function | 5-shot (5-way Acc.) | 5 -shot (20-way Acc.) | 5-shot (50-way Acc.) |
+| --- | --- | --- | --- |
+| Manhattan | 98.76% | 99.44% | 99.54% |
+| Mahalanobis | 98.80% | 99.32% | 99.50% |
+| Euclidean (original) | 99.70% | 98.90% | - |
+
+**Mini-imagenet dataset**
+| Distance Function | 5-shot (5-way Acc.) | 5 -shot (20-way Acc.) |
+| --- | --- | --- |
+| Manhattan | 28.61% | 32.38% |
+| Mahalanobis | 98.80% | - | - |
+| Euclidean (original) | 68.12% | 65.03% |

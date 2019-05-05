@@ -76,7 +76,7 @@ class CustomConvNet(nn.Module):
                                       self.convolution_block(in_channels=240, out_channels=240))
         self.fc1 = nn.Linear(960, 960)
         self.fc2 = nn.Linear(960, 500)
-        self.dropout = nn.Dropout2d(p=0.3)
+        self.dropout = nn.Dropout2d(p=0.2)
 
     def convolution_block(self, in_channels, out_channels):
         return nn.Sequential(nn.Conv2d(in_channels, out_channels, 3, padding=1),
@@ -147,3 +147,7 @@ if __name__ == "__main__":
     input = torch.rand(20, 3, 84, 84)
     output = model(input)
     print(output.shape)
+
+    """
+    
+    """

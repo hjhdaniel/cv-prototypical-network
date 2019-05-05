@@ -198,9 +198,9 @@ def main():
     if arg_settings.data == 'omniglot':
         model = PrototypicalNetwork().to(device)
     else:
-        #model = PrototypicalResnet(output_size=1600).to(device)
+        model = PrototypicalResnet(output_size=1600).to(device)
         #model = PrototypicalNetwork(input_channel_num=3).to(device)
-        model = CustomConvNet().to(device)
+        #model = CustomConvNet().to(device)
         #model = FCNet().to(device)
 
     # initialise optimizer: Adaptive Moment Estimation (Adam)

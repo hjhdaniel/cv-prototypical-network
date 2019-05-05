@@ -16,19 +16,6 @@ Code Author: Daniele E. Ciriello
 4) pillow
 5) argparse
 
-## Required Datasets (Download Manually)
-
-1) **Mini-imagenet**: [Download link](https://drive.google.com/open?id=0B3Irx3uQNoBMQ1FlNXJsZUdYWEE)
-
-## Dataset Directories
-
-- dataset
-  - imagenet
-    - images **(PUT IMAGENET IMAGES HERE)**
-    - materials
-  - cub200
-  - omniglot
-
 ## Files
 
 1) prototype_network.py: prototype network class module
@@ -40,3 +27,30 @@ Code Author: Daniele E. Ciriello
 7) parser.py: parser to handle arguments in commandline
 8) main.py: main code to run (edit this to change parameters for training/testing)
 9) omniglot_dataset.py: for loading omniglot dataset
+
+## Improvements and associated branches
+
+| Improvements                             | Branch Name                             |
+| ---------------------------------------- | --------------------------------------- |
+| Embedding Architecture                   | embedding-architecture                  |
+| Exploration of New Distance Functions    | new-distance-functions                  |
+| Soft clustering with Gaussian prototypes | gaussian-prototypes<br />gaussian-paper |
+| Feature Extraction for Embeddings        | feature-extraction-embeddings           |
+| New Datasets                             | new-datasets                            |
+
+*note: gaussian-prototypes is our original implementation, gaussian-paper is an implementation based on this paper >> https://arxiv.org/abs/1708.02735. More details of each improvements can be found in each branch's README and in the report.*
+
+## Changes
+
+* implemented 2 different embedding architecture
+  * Pretrained Resnet18
+  * 5 convolutional blocks and 2 fully-connected layers
+* changes can be found in `prototype_network.py`
+
+## Performances
+
+| Model | Embedding space size | Episodes | Training classes per episode | Test accuracy |
+| --- | --- | --- | --- | --- |
+| Original model (4 conv) | 1600 | 100 | 8 | 67.0% |
+| Deeper Model (5 conv + 2 fc) | 500 | 100 | 8 | 69.4% |
+| Resnet18 | 1500 | 100 | 8 | 70.1% |

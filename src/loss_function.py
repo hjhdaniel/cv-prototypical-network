@@ -38,12 +38,34 @@ def euclidean_dist(x, y):
 
     return torch.pow(x - y, 2).sum(2)
 
-def mahalanobis_dist(x, proto_mean, proto_cov_mat):
+def var_dist(x, proto_mean, proto_var, device='cpu'):
+    '''
+    Compute euclidean distance between two tensors with variance normalization
+    '''
+    # x: N x D
+    # y: M x D
+    n = x.size(0)
+    m = proto_mean.size(0)
+    d = x.size(1)
+    if d != proto_mean.size(1):
+        raise Exception
+
+    x = x.unsqueeze(1).expand(n, m, d)
+    proto_mean = proto_mean.unsqueeze(0).expand(n, m, d)
+    euc_dist = torch.pow(x - proto_mean, 2)
+
+    proto_var = torch.where(proto_var==0.0, proto_var+(10.0**(-5.0)), proto_var)
+    proto_var = proto_var.unsqueeze(0).expand(n, m, d)
+
+    return (euc_dist/proto_var).sum(2)
+
+def mahalanobis_dist(x, proto_mean, proto_cov_mat, device='cpu'):
     '''
     Compute mahalanobis distance between query inputs and prototype gaussian distributions
     :param x: query inputs
     :param proto_mean: mean of prototype gaussian distributions
     :param proto_cov_mat: covariance matrices of prototype gaussian distributions
+    :param device: set device (CUDA if available)
     '''
 
     # maha_dists = torch.zeros([x.size()[0], proto_mean.size()[0]], dtype=torch.float64)
@@ -66,10 +88,18 @@ def mahalanobis_dist(x, proto_mean, proto_cov_mat):
     proto_mean = proto_mean.unsqueeze(0).expand(n_inputs, n_classes, n_features)
     x_subtract_mean = x - proto_mean
 
-    # get inverse of covariance matrices
+    # get moore-penrose pseudo inverse of covariance matrices
     proto_cov_mat_inv = torch.zeros(proto_cov_mat.size())
     for proto_idx in range(n_classes):
-        proto_cov_mat_inv[proto_idx] = torch.pinverse(proto_cov_mat[proto_idx])
+        # proto_cov_mat_inv[proto_idx] = torch.pinverse(proto_cov_mat[proto_idx])
+        u, s, v = torch.svd(proto_cov_mat[proto_idx])
+        s_prime = torch.zeros(s.size()[0], s.size()[0])
+        s = torch.where(s<0.00001, s*0.0, 1.0/s)
+        s_prime[0] = s
+        s_prime = torch.t(s_prime)
+        s_prime = s_prime.to(device)
+        proto_cov_mat_inv[proto_idx] = torch.matmul(torch.matmul(v, s_prime), torch.t(u))
+    proto_cov_mat_inv = proto_cov_mat_inv.to(device)
 
     # reshape the matrices for batch matrix multiplication operations
     x_subtract_mean = x_subtract_mean.unsqueeze(2).expand(n_inputs, n_classes, 1, n_features)
@@ -77,7 +107,7 @@ def mahalanobis_dist(x, proto_mean, proto_cov_mat):
     proto_cov_mat_inv = proto_cov_mat_inv.unsqueeze(0).expand(n_inputs, n_classes, n_features, n_features)
 
     # matrix multiplication for mahalanobis distance
-    maha_dists = x_subtract_mean @ proto_cov_mat_inv @ x_subtract_mean_t
+    maha_dists = torch.matmul(torch.matmul(x_subtract_mean, proto_cov_mat_inv), x_subtract_mean_t)
 
     # get absolute values (distances) and square-root of mahalanobis distance. Reshape to (n_inputs, n_classes)
     maha_dists = torch.sqrt(torch.abs(maha_dists.view(n_inputs, n_classes)))
@@ -89,7 +119,28 @@ def gaussian_prototypical_loss(device, n_classes, n_query, proto_mean, proto_cov
     Get average loss and accuracy of predicting query points based on gaussian distribution of support sets
     '''
 
-    dists = mahalanobis_dist(query_samples, proto_mean, proto_cov_mat)
+    dists = mahalanobis_dist(query_samples, proto_mean, proto_cov_mat, device)
+
+    log_p_y = F.log_softmax(-dists, dim=1).view(n_classes, n_query, -1)
+    log_p_y = log_p_y.to(device)
+
+    target_inds = torch.arange(0, n_classes)
+    target_inds = target_inds.view(n_classes, 1, 1)
+    target_inds = target_inds.expand(n_classes, n_query, 1).long()
+    target_inds = target_inds.to(device)
+
+    loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
+    _, y_hat = log_p_y.max(2)
+    acc_val = y_hat.eq(target_inds.squeeze()).float().mean()
+
+    return loss_val,  acc_val
+
+def prototypical_var_loss(device, n_classes, n_query, proto_mean, proto_var, query_samples):
+    '''
+    Get average loss and accuracy of predicting query points based on gaussian distribution of support sets
+    '''
+
+    dists = var_dist(query_samples, proto_mean, proto_var, device)
 
     log_p_y = F.log_softmax(-dists, dim=1).view(n_classes, n_query, -1)
     log_p_y = log_p_y.to(device)

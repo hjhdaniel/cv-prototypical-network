@@ -37,3 +37,5 @@ Code Author: Daniele E. Ciriello
 | Soft clustering with Gaussian prototypes | gaussian-prototypes<br />gaussian-paper |
 | Feature Extraction for Embeddings        | feature-extraction-embeddings           |
 | New Datasets                             | new-datasets                            |
+
+*note: gaussian-prototypes is our original implementation, gaussian-paper is an implementation based on this paper >> https://arxiv.org/abs/1708.02735. More details of each improvements can be found in each branch's README and in the report.*

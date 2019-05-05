@@ -16,21 +16,6 @@ Code Author: Daniele E. Ciriello
 4) pillow
 5) argparse
 
-## Required Datasets
-
-1) Mini-imagenet: Download link - <https://drive.google.com/open?id=0B3Irx3uQNoBMQ1FlNXJsZUdYWEE>
-
-- dataset
-  - imagenet
-    - data
-      - xxx.jpg
-      - xxx.jpg
-    - materials
-      - test.csv
-      - train.csv
-      - val.csv
-  - omniglot
-
 ## Files
 
 1) prototype_network.py: prototype network class module
@@ -42,3 +27,35 @@ Code Author: Daniele E. Ciriello
 7) parser.py: parser to handle arguments in commandline
 8) main.py: main code to run (edit this to change parameters for training/testing)
 9) omniglot_dataset.py: for loading omniglot dataset
+
+## Improvements and associated branches
+
+| Improvements                             | Branch Name                             |
+| ---------------------------------------- | --------------------------------------- |
+| Embedding Architecture                   | embedding-architecture                  |
+| Exploration of New Distance Functions    | new-distance-functions                  |
+| Soft clustering with Gaussian prototypes | gaussian-prototypes<br />gaussian-paper |
+| Feature Extraction for Embeddings        | feature-extraction-embeddings           |
+| New Datasets                             | new-datasets                            |
+
+*note: gaussian-prototypes is our original implementation, gaussian-paper is an implementation based on this paper >> https://arxiv.org/abs/1708.02735. More details of each improvements can be found in each branch's README and in the report.*
+
+## Changes
+
+* changes can be found in `main2.py` `gaussian_prototype_network.py` `loss_function.py`
+
+## Performances
+
+Omniglot dataset
+| Distance Function | 5-shot (5-way Acc.) | 5 -shot (20-way Acc.) | 5-shot (50-way Acc.) |
+| --- | --- | --- | --- |
+| Manhattan | 98.76% | 99.44% | 99.54% |
+| Mahalanobis | 98.80% | 99.32% | 99.50% |
+| Euclidean (original) | 99.70% | 98.90% | - |
+
+Mini-imagenet dataset
+| Distance Function | 5-shot (5-way Acc.) | 5 -shot (20-way Acc.) |
+| --- | --- | --- |
+| Manhattan | 28.61% | 32.38% |
+| Mahalanobis | 98.80% | - | - |
+| Euclidean (original) | 68.12% | 65.03% |
